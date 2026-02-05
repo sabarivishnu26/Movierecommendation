@@ -42,45 +42,53 @@ The project follows an incremental recommender system pipeline:
 🤖 Models Used
 
 User-Based Collaborative Filtering
+
 • Finds users with similar rating behavior
 • Recommends movies liked by similar users
 • Advantages: Simple, Intuitive
 • Limitations: Sparse data problem, Poor scalability
 
 Item-Based Collaborative Filtering
+
 • Finds movies with similar audience patterns
 • Recommends movies similar to those user liked
 • Advantages: More stable, Scales better, Widely used in industry
 • Limitations: Cold-start for new movies
 
 Matrix Factorization (SVD)
+
 • Learns latent user preferences and movie features
 • Predicts ratings using learned embeddings
 • Advantages: Handles sparsity, High prediction accuracy, Production-grade technique
 • Limitations: Computationally expensive, Requires training
 
 Evaluation
+
 Models were evaluated using Root Mean Square Error (RMSE).
 RMSE measures prediction accuracy between actual ratings and predicted ratings. Lower RMSE
 indicates better performance.
 
 Results
+
   Model RMSE
   User-Based CF 1.096
   Item-Based CF 0.905
   SVD Add your value
 
 Key Observations
+
 • User-based CF suffers from sparse data
 • Item-based CF significantly improves stability
 • SVD provides best overall predictive performance
 
 Tech Stack
+
   Programming: Python
   Libraries: Pandas, NumPy, Scikit-learn, Surprise, Matplotlib, Seaborn
   Tools: Jupyter Notebook, Git & GitHub
   
 Project Structure
+
   movie-recommendation-system/
   • data/
   • notebooks/
@@ -90,6 +98,7 @@ Project Structure
   • requirements.txt
   
 Future Improvements
+
 • Hybrid recommendation system
 • Deep learning-based recommenders
 • Web application using Streamlit / Flask
@@ -97,6 +106,7 @@ Future Improvements
 • Real-time recommendation API
 
 Learning Outcomes
+
 • Recommender system design
 • Collaborative filtering algorithms
 • Matrix factorization techniques
