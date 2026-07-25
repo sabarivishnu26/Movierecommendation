@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movie Recommendation System</title>
+    <!-- Use Preconnect for Performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Movie Recommendation System</h1>
+            <p class="subtitle">Discover your next favorite movie</p>
+        </header>
+        
+        <main>
+            <div class="card">
+                <form id="recommender-form">
+                    <div class="form-group">
+                        <label for="model-select">Select Model</label>
+                        <select id="model-select" name="model" required>
+                            <option value="user">User-Based Collaborative Filtering</option>
+                            <option value="item">Item-Based Collaborative Filtering</option>
+                            <option value="svd">Matrix Factorization (SVD)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="movie-input">Movie Title</label>
+                        <input type="text" id="movie-input" name="movie" placeholder="Enter a movie you like (e.g., Toy Story)" required autocomplete="off">
+                    </div>
+                    
+                    <button type="submit" id="submit-btn" class="interactive-btn">
+                        <span class="btn-text">Recommend Movies</span>
+                        <div class="loader hidden"></div>
+                    </button>
+                </form>
+            </div>
+            
+            <div id="results-container" class="card results-card hidden">
+                <h2>Top Recommended Movies</h2>
+                <div class="generated-by">
+                    Generated using: <span id="model-name-badge" class="badge">Model Name</span>
+                </div>
+                
+                <ul id="recommendations-list" class="movie-list">
+                    <!-- Results will be populated here by JavaScript -->
+                </ul>
+            </div>
+            
+            <div id="error-container" class="card error-card hidden">
+                <p id="error-message">Movie not found.</p>
+            </div>
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
