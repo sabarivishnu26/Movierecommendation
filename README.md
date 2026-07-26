@@ -6,7 +6,33 @@ quality, not rating-prediction error. Includes a documented, counter-intuitive
 empirical finding, and a deployed interactive demo.
 
 ---
+## 🛠️ Tech Stack
 
+- 🐍
+  ![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
+  ![Pandas](https://img.shields.io/badge/Pandas-150458?style=for-the-badge&logo=pandas&logoColor=white)
+  ![NumPy](https://img.shields.io/badge/NumPy-013243?style=for-the-badge&logo=numpy&logoColor=white)
+  ![Scikit-Learn](https://img.shields.io/badge/Scikit--Learn-F7931E?style=for-the-badge&logo=scikit-learn&logoColor=white)
+
+- 🤖
+  ![Implicit Feedback](https://img.shields.io/badge/Implicit_Feedback-1E88E5?style=for-the-badge)
+  ![ALS](https://img.shields.io/badge/ALS-4285F4?style=for-the-badge)
+  ![BPR](https://img.shields.io/badge/BPR-34A853?style=for-the-badge)
+  ![SVD](https://img.shields.io/badge/SVD-EA4335?style=for-the-badge)
+  ![Collaborative Filtering](https://img.shields.io/badge/Collaborative_Filtering-8E24AA?style=for-the-badge)
+
+- 📊
+  ![MovieLens](https://img.shields.io/badge/MovieLens-Dataset-FF6F00?style=for-the-badge)
+  ![Precision@K](https://img.shields.io/badge/Precision@K-009688?style=for-the-badge)
+  ![Recall@K](https://img.shields.io/badge/Recall@K-43A047?style=for-the-badge)
+  ![NDCG@K](https://img.shields.io/badge/NDCG@K-5E35B1?style=for-the-badge)
+
+- 🌐
+  ![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)
+  ![Git](https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=git&logoColor=white)
+  ![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)
+  ![VS Code](https://img.shields.io/badge/VS_Code-007ACC?style=for-the-badge&logo=visual-studio-code&logoColor=white)
+  
 ## The Key Insight
 
 > Ranking-optimized implicit-feedback models (ALS, BPR) are the industry-standard
@@ -25,6 +51,7 @@ empirical finding, and a deployed interactive demo.
 > events). It doesn't automatically transfer to moderate-scale, single-domain
 > datasets like MovieLens — and this project quantifies that instead of
 > assuming it.
+
 
 | Model | Precision@10 | Recall@10 | MAP@10 | NDCG@10 |
 |---|---|---|---|---|
@@ -103,13 +130,6 @@ An optional layer (off by default) can rephrase these through a small LLM call
 for more natural wording — the LLM is only ever given the verified facts, never
 asked to invent a justification, so it can't hallucinate a reason that isn't
 actually true.
-
-## Tech Stack
-
-- **Data / ML:** Python, Pandas, NumPy, SciPy, `implicit` (ALS/BPR), scikit-learn
-- **Evaluation:** custom ranking-metric implementations (Precision/Recall/MAP/NDCG@K)
-- **Explanation layer:** rule-based genre grounding + optional Anthropic API call
-- **Deployment:** Streamlit
 
 ## Project Structure
 
