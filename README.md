@@ -1,120 +1,161 @@
-🎬 Movie Recommendation System
-📌 Problem Statement
+# 🎬 Implicit-Feedback Movie Recommender
 
-Recommender systems help users discover relevant content from large catalogs.
-This project builds and compares multiple collaborative filtering approaches to recommend movies using user rating behavior.
+A movie recommendation system built on MovieLens, reframed around **implicit
+feedback** and evaluated the way real recommenders actually are: by ranking
+quality, not rating-prediction error. Includes a documented, counter-intuitive
+empirical finding, and a deployed interactive demo.
 
-The objective is to:
+---
 
-  * Predict user preferences
-  * Handle sparse rating data
-  * Compare recommendation techniques
-  * Identify the most scalable model
+## The Key Insight
 
-📊 Dataset
+> Ranking-optimized implicit-feedback models (ALS, BPR) are the industry-standard
+> approach for recommendation at scale (used at companies like Spotify) — the
+> expectation going in was that they'd outperform classical SVD. They didn't.
+>
+> Across **two dataset sizes** (100K and 1M MovieLens ratings), a classical SVD
+> baseline — trained on the *same* implicit confidence-weighted matrix — beat
+> both tuned ALS and tuned BPR on every ranking metric (Precision@10, Recall@10,
+> MAP@10, NDCG@10). A hyperparameter search confirmed BPR's initial gap was a
+> genuine overfitting problem (training AUC ~98% vs. held-out NDCG@10 of ~0.03)
+> and fixed it — but even after tuning, SVD still won at both scales.
+>
+> **Conclusion:** the advantage implicit-feedback-specialized models show in
+> industry depends on interaction-log scale and density (millions of dense
+> events). It doesn't automatically transfer to moderate-scale, single-domain
+> datasets like MovieLens — and this project quantifies that instead of
+> assuming it.
 
-This project uses the MovieLens Small Dataset.
+| Model | Precision@10 | Recall@10 | MAP@10 | NDCG@10 |
+|---|---|---|---|---|
+| Popularity (baseline) | 0.0079 | 0.0397 | 0.0136 | 0.0236 |
+| **SVD** | **0.0180** | **0.0899** | **0.0327** | **0.0548** |
+| ALS (tuned) | 0.0147 | 0.0733 | 0.0257 | 0.0440 |
+| BPR (tuned) | 0.0125 | 0.0623 | 0.0230 | 0.0385 |
 
-Dataset Details
+_Results on MovieLens ml-1m (6,040 users, 3,706 movies, ~1M ratings), time-based
+leave-last-2-out evaluation. See `results/` for the full hyperparameter grids._
 
-  * Source: GroupLens Research
-  * Users: ~600
-  * Movies: ~9,000
-  * Ratings: ~100,000
-  * Rating Scale: 0.5 – 5.0
+---
 
-Files Used
-ratings.csv → user-movie ratings
-movies.csv → movie metadata
+## Architecture
 
-🔬 Approach
+```
+Raw MovieLens ratings (explicit, 1-5 stars)
+        │
+        ▼
+┌─────────────────────────┐
+│  Phase 1: Preprocessing │  confidence = 1 + α·rating
+│  Explicit → Implicit    │  time-based leave-last-N-out split
+└───────────┬─────────────┘
+            ▼
+┌─────────────────────────┐
+│  Phase 2: Modeling       │  ALS · BPR · SVD (baseline)
+│  Matrix Factorization    │  trained on the same confidence matrix
+└───────────┬─────────────┘
+            ▼
+┌─────────────────────────┐
+│  Phase 3: Evaluation     │  Precision@K · Recall@K · MAP@K · NDCG@K
+│  Ranking Metrics         │  (not RMSE — there's no ground-truth rating here)
+└───────────┬─────────────┘
+            ▼
+┌─────────────────────────┐
+│  Phase 3.5: Tuning       │  grid search, diagnosed BPR overfitting
+│  Diagnosis & Fix         │  (train AUC 98% vs. held-out NDCG ~0.03)
+└───────────┬─────────────┘
+            ▼
+┌─────────────────────────┐
+│  Phase 4: Explanations   │  genre-overlap grounding + "most similar
+│  Why was this picked?    │  movie you rated highly" + optional LLM rephrase
+└───────────┬─────────────┘
+            ▼
+┌─────────────────────────┐
+│  Phase 5: Deployment      │  Streamlit app — pick a user, see Top-N
+│  Interactive Demo         │  recommendations with explanations, live
+└──────────────────────────┘
+```
 
-The project follows an incremental recommender system pipeline:
+---
 
-  1.Exploratory Data Analysis
-  2.User–Item Matrix Construction
-  3.User-Based Collaborative Filtering
-  4.Item-Based Collaborative Filtering
-  5.Matrix Factorization (SVD)
-  6.Model Evaluation & Comparison
+## Why Implicit Feedback
 
+Real-world recommenders (Netflix, Spotify, YouTube) rarely observe explicit
+1–5 star preferences — they observe *interactions*: did the user watch, click,
+or stream something, or not? This project reframes MovieLens the same way:
+every rating becomes a positive interaction signal, and the star value is used
+only as a **confidence weight** (Hu, Koren & Volinsky, 2008) on how strong that
+signal is — not as a value to reconstruct.
 
-🤖 Models Used
+That reframing also changes how the system must be evaluated: there's no
+ground-truth rating to compute RMSE against anymore, only "did we rank the
+movies the user actually watched next near the top of our list?" — hence
+ranking metrics (Precision/Recall/MAP/NDCG@K) instead of error metrics.
 
-User-Based Collaborative Filtering
+## Explanation Layer
 
-• Finds users with similar rating behavior
-• Recommends movies liked by similar users
-• Advantages: Simple, Intuitive
-• Limitations: Sparse data problem, Poor scalability
+Every recommendation ships with a plain-language reason, grounded in real facts
+pulled from the user's own history — e.g.:
 
-Item-Based Collaborative Filtering
+> **The Shawshank Redemption** — *Recommended because you rated "The Last Days
+> of Disco" highly, and both share Drama.*
 
-• Finds movies with similar audience patterns
-• Recommends movies similar to those user liked
-• Advantages: More stable, Scales better, Widely used in industry
-• Limitations: Cold-start for new movies
+An optional layer (off by default) can rephrase these through a small LLM call
+for more natural wording — the LLM is only ever given the verified facts, never
+asked to invent a justification, so it can't hallucinate a reason that isn't
+actually true.
 
-Matrix Factorization (SVD)
+## Tech Stack
 
-• Learns latent user preferences and movie features
-• Predicts ratings using learned embeddings
-• Advantages: Handles sparsity, High prediction accuracy, Production-grade technique
-• Limitations: Computationally expensive, Requires training
+- **Data / ML:** Python, Pandas, NumPy, SciPy, `implicit` (ALS/BPR), scikit-learn
+- **Evaluation:** custom ranking-metric implementations (Precision/Recall/MAP/NDCG@K)
+- **Explanation layer:** rule-based genre grounding + optional Anthropic API call
+- **Deployment:** Streamlit
 
-Evaluation
+## Project Structure
 
-Models were evaluated using Root Mean Square Error (RMSE).
-RMSE measures prediction accuracy between actual ratings and predicted ratings. Lower RMSE
-indicates better performance.
+```
+movie-recommender/
+├── app/
+│   └── app.py                  # Streamlit demo
+├── data/
+│   ├── raw/                    # ratings.dat, movies.dat (not committed if large)
+│   └── processed/              # train/test splits, sparse matrix, ID mappings
+├── models/                     # trained ALS/BPR/SVD models (pickled)
+├── results/                    # evaluation tables, hyperparameter tuning grids
+├── src/
+│   ├── data_preprocessing.py   # Phase 1
+│   ├── train_models.py         # Phase 2
+│   ├── evaluate.py             # Phase 3
+│   ├── tune_hyperparams.py     # Phase 3.5
+│   └── explain.py              # Phase 4
+├── requirements.txt
+└── README.md
+```
 
-Results
+## How to Run
 
-  Model RMSE
-  User-Based CF 1.096
-  Item-Based CF 0.905
-  SVD Add your value
+```bash
+# 1. Get the data
+#    Download ml-1m from https://grouplens.org/datasets/movielens/1m/
+#    and place ratings.dat + movies.dat into data/raw/
 
-Key Observations
+# 2. Install dependencies
+pip install -r requirements.txt
 
-• User-based CF suffers from sparse data
-• Item-based CF significantly improves stability
-• SVD provides best overall predictive performance
+# 3. Run the pipeline in order
+python src/data_preprocessing.py
+python src/train_models.py
+python src/evaluate.py
+python src/tune_hyperparams.py   # optional, ~30 model trainings
+python src/explain.py --user_idx 0 --k 5
 
-Tech Stack
+# 4. Launch the demo
+streamlit run app/app.py
+```
 
-  Programming: Python
-  Libraries: Pandas, NumPy, Scikit-learn, Surprise, Matplotlib, Seaborn
-  Tools: Jupyter Notebook, Git & GitHub
-  
-Project Structure
+## Future Work
 
-  movie-recommendation-system/
-  • data/
-  • notebooks/
-  • outputs/
-  • src/
-  • README.md
-  • requirements.txt
-  
-Future Improvements
-
-• Hybrid recommendation system
-• Deep learning-based recommenders
-• Web application using Streamlit / Flask
-• Cloud deployment
-• Real-time recommendation API
-
-Learning Outcomes
-
-• Recommender system design
-• Collaborative filtering algorithms
-• Matrix factorization techniques
-• Model evaluation strategies
-• ML project structuring
-
-How to Run the Project
-
-  git clone
-  cd movie-recommendation-system
-  pip install -r requirements.txt
+- Solve cold-start with a content-based fallback for brand-new users/movies
+- Test on `ml-25m` to see if the SVD-vs-implicit-models finding holds at even larger scale
+- Add diversity/novelty/popularity-bias metrics alongside accuracy
+- Time-aware weighting (recent ratings weighted more heavily)
