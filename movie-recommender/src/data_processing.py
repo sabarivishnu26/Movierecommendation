@@ -36,11 +36,23 @@ RAW_DATA_DIR = "movie-recommender/data/raw"
 PROCESSED_DATA_DIR = "movie-recommender/data/processed"
 
 # Hu, Koren & Volinsky (2008) style confidence weighting: confidence = 1 + alpha * rating.
-# alpha controls how much we trust higher ratings as a stronger interaction signal.
-# We use a smaller alpha (15) than the paper's default (40) because MovieLens ratings
-# are explicit (1-5) rather than raw implicit counts (e.g. play counts), so they already
-# carry more signal per unit than something like "number of times a song was played."
-ALPHA = 15
+#
+# CORRECTED (see results/als_alpha_reg_search.csv for the full sweep): the original
+# ALPHA=15 was never validated against alternatives and produced confidence values of
+# 16-76 versus an implicit weight of 1.0 for unobserved pairs -- a 16x-76x imbalance.
+# For ALS specifically (which uses confidence as a per-entry loss weight), this
+# overwhelmed regularization and caused severe overfitting to observed interactions
+# (verified: NDCG@10 dropped from ~0.059 at alpha=0 to ~0.039 at alpha=15 with matched
+# regularization). SVD was largely unaffected because it uses an unweighted loss, which
+# is what originally made SVD look like it "beat" implicit-feedback-specialized models --
+# that comparison was invalid until this was fixed.
+#
+# ALPHA=0 means binary confidence (every interaction weighted equally, c=1), which the
+# sweep confirmed as the best-performing setting on this dataset at appropriate
+# regularization. Set ALPHA > 0 only after re-validating with a fresh regularization
+# sweep for that value (see tune_hyperparameter.py) -- confidence and regularization
+# are coupled and cannot be tuned independently.
+ALPHA = 0
 
 # How many of each user's most recent interactions to hold out for testing.
 N_HOLDOUT = 2
@@ -164,6 +176,19 @@ def run_pipeline(raw_path=None):
     ratings = add_confidence(ratings, ALPHA)
 
     train_df, test_df = time_based_split(ratings, N_HOLDOUT)
+
+    # FIX (audit finding): encode_ids() is fit on the full dataset before the split,
+    # so a small number of items can end up with zero training interactions but still
+    # appear in the test set -- no model could ever have learned anything about them,
+    # so leaving them in unfairly penalizes every model equally (but is still wrong).
+    # Drop test rows for items with no training signal.
+    items_with_train_signal = set(train_df["movie_idx"].unique())
+    before = len(test_df)
+    test_df = test_df[test_df["movie_idx"].isin(items_with_train_signal)].copy()
+    dropped = before - len(test_df)
+    if dropped:
+        print(f"[data_processing] Dropped {dropped} test interactions for items with "
+              f"zero training interactions (vocabulary-leakage fix).")
 
     n_users = len(user2idx)
     n_items = len(movie2idx)

@@ -63,7 +63,13 @@ def load_mappings(path=None):
         return pickle.load(f)
 
 
-def train_als(train_matrix, factors=50, regularization=0.1, iterations=20, random_state=42):
+def train_als(train_matrix, factors=150, regularization=10.0, iterations=25, random_state=42):
+    # Defaults verified in results/als_alpha_reg_search.csv: with the corrected
+    # ALPHA=0 (binary) confidence from data_processing.py, factors=150 and
+    # regularization=10.0 gave the best held-out NDCG@10 (~0.059) in a sweep over
+    # factors in {50,100,150,200} x regularization in {0.5,1,2,5,10}. These are
+    # NOT safe defaults for a different confidence scheme -- confidence scale and
+    # regularization are coupled, so re-sweep both together if ALPHA changes.
     model = AlternatingLeastSquares(
         factors=factors,
         regularization=regularization,
